@@ -80,7 +80,7 @@ def check_credit_limit(current_credits, new_credit):
 
 
 def register_student():
-    global current_student
+    global current_student 
     print("\n--- NEW STUDENT REGISTRATION ---")
     while True:
         name = input("Enter Full Name: ").title()
@@ -92,20 +92,21 @@ def register_student():
         if matric:
             break
 
-    if any(s["matric"] == matric for s in students):
+    if any(s["matric"] == matric for s in students): # duplicate check, before saving check database in students list, to stop function to prevent duplicate acc
         print("Error: This matric number is already registered!")
         return
 
-    new_student = {
+    new_student = { # create new dictionary for new student
         "name": name,
         "matric": matric,
-        "registered_courses": [],
-        "total_credits": 0,
+        "registered_courses": [], # initialize empty list, bcos its a new profile - so that add_course function has a place to store data immediately
+        "total_credits": 0, # set to 0 - so the computer has a starting point
     }
     students.append(new_student)
     current_student = new_student  # Auto login after registration
     print(f"\nStudent {name} ({matric}) registered and logged in successfully!")
     print("\nYou must register for at least 12 credits.")
+    # do a rule, student cant finish register if credit < 12. we use loop that repeat add_course until credit >= 12
     while current_student["total_credits"] < 12:
         print(f"\nCurrent credits: {current_student['total_credits']}/12 required")
         add_course()
@@ -115,6 +116,7 @@ def register_student():
 
 def login():
     global current_student
+    # check if someone is already logged in, if yes, it stops
     if current_student:
         print("You are already logged in!")
         return
@@ -124,6 +126,7 @@ def login():
     if not validated_matric:
         return
 
+    # search shortcut. it scans the list(database) and grab first student that matches the ID. if no one, returns None
     student = next((s for s in students if s["matric"] == validated_matric), None)
     if student:
         current_student = student
@@ -149,7 +152,7 @@ def require_login():
 
 
 def find_course_by_partial_code(partial_code):
-    partial_code = partial_code.strip().upper()
+    partial_code = partial_code.strip().upper() # we clean the input. if user type in lowercase or with spaces, we fix it so matches our database
     matches = []
 
     for course in courses_available:
@@ -185,6 +188,7 @@ def find_course_by_partial_code(partial_code):
 
 
 def detect_clash(new_course):
+    # compare every single slot of the new course against every single slot of the courses I've already registered for. We leave nothing to chance
     for n_slot in new_course["slots"]:
         n_day, n_time = n_slot
         n_start_str, n_end_str = n_time.split("-")
@@ -200,7 +204,7 @@ def detect_clash(new_course):
                 r_start = int(r_start_str.split(":")[0])
                 r_end = int(r_end_str.split(":")[0])
 
-                if max(n_start, r_start) < min(n_end, r_end):
+                if max(n_start, r_start) < min(n_end, r_end): # overlap condition, check for time conflict/clashes
                     print(
                         f"CLASH ALERT: Conflicts with {reg_course['code']} ({reg_course['name']}) on {n_day} {r_time}"
                     )
@@ -208,8 +212,8 @@ def detect_clash(new_course):
     return False
 
 
-def add_course():
-    if not require_login():
+def add_course(): 
+    if not require_login(): # check if logged in
         return
 
     print("\nAvailable Courses:")
@@ -225,7 +229,7 @@ def add_course():
 
     print(f"Found: {course['code']} - {course['name']}")
 
-    if course in current_student["registered_courses"]:
+    if course in current_student["registered_courses"]: # credit check
         print("Error: Already registered for this course!")
         return
 
@@ -269,7 +273,7 @@ def drop_course():
         print("Error: You are not registered for this course!")
         return
 
-    if current_student["total_credits"] - course["credit"] < 12:
+    if current_student["total_credits"] - course["credit"] < 12: # Before we remove the course, we simulate what happens if we drop it. If the student's credits would drop below 12 (the minimum), we block the action to ensure they stay compliant with university rules."
         print("Cannot drop! Would fall below minimum 12 credits.")
         return
 
@@ -308,7 +312,7 @@ def generate_timetable():
 
     for course in current_student["registered_courses"]:
         for slot in course["slots"]:
-            day, time_range = slot
+            day, time_range = slot # we grab the day and the start/end time.
             if day not in days:
                 continue
             start_str, end_str = time_range.split("-")
@@ -333,7 +337,7 @@ def save_and_exit():
     print("Data saved successfully. Goodbye!")
 
 
-def load_data():
+def load_data(): # is when you turn it back on, and it remembers exactly where you left off
     global students, courses_available
     try:
         with open("students.json", "r") as f:
